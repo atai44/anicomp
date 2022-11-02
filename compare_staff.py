@@ -1,6 +1,7 @@
 import requests
 import json
 import pandas as pd
+import time
 
 def get_works(name, page):
     
@@ -22,7 +23,7 @@ def get_works(name, page):
         name {
           userPreferred
         }
-        staffMedia (page: $page, perPage: 25) {
+        staffMedia (page: $page, perPage: 25, sort:START_DATE) {
           edges {
             node {
               id
@@ -74,6 +75,7 @@ def process_jsons(pages):
     ids = set()
     ids_to_roles = {}
     ids_to_titles = {}
+    ids_to_years = {}
     
     for p in pages:
         works = p['data']['Staff']['staffMedia']['edges']
@@ -84,27 +86,31 @@ def process_jsons(pages):
             else:
                 ids_to_roles[w['node']['id']] = [w['staffRole']]
             ids_to_titles[w['node']['id']] = w['node']['title']['userPreferred']
+            ids_to_years[w['node']['id']] = w['node']['startDate']['year']
             
-    return name, ids, ids_to_roles, ids_to_titles
+    return name, ids, ids_to_roles, ids_to_titles, ids_to_years
 
 def comp_staff(p1, p2):
     
     pages1 = multipage(p1)
-    n1, ids1, roles1, titles1 = process_jsons(pages1)
+    n1, ids1, roles1, titles1, years1 = process_jsons(pages1)
     #print(n1, ids1)
     pages2 = multipage(p2)
-    n2, ids2, roles2, titles2 = process_jsons(pages2)
+    n2, ids2, roles2, titles2, years2 = process_jsons(pages2)
     #print(n2, ids2)
     
     shared = ids1.intersection(ids2)
-    df = pd.DataFrame(columns = [n1, n2])
+    df = pd.DataFrame(columns = ['year', n1, n2])
     for s in shared:
-        df.loc[titles1[s]] = [', '.join(roles1[s]), ', '.join(roles2[s])]
-    print(df)
-    return df
+        df.loc[titles1[s]] = [years1[s], ', '.join(roles1[s]), ', '.join(roles2[s])]
+    print(df.sort_values(by=['year']))
+    return df.sort_values(by=['year'])
 
 if __name__ == '__main__':
-    comp_staff("Miyazaki", "Kanada")
+    start = time.time()
+    c = comp_staff("Takahata", "Miyazaki")
+    end = time.time()
+    print("Completed in", end-start, "seconds", sep=" ")
     # res = get_works("Kubo", 3)
     # staff = res['data']['Staff']
     # name = staff['name']['userPreferred']
