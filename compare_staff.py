@@ -68,6 +68,14 @@ def multipage(name):
     return pages
         
 
+def add_set(setlist, newset):
+    #if len(setlist)==0: return newset
+    ret = set()
+    for s in setlist:
+        ret|=s&newset
+    setlist.append(newset)
+    return ret
+
 def process_jsons(pages):
     staff = pages[0]['data']['Staff']
     name = staff['name']['userPreferred']
@@ -90,6 +98,55 @@ def process_jsons(pages):
             
     return name, ids, ids_to_roles, ids_to_titles, ids_to_years
 
+def comp_multi(names):
+    
+    namelist = []
+    idslist = []
+    
+    #lists of dictionaries
+    rolesdicts = []
+    titlesdicts = []
+    yearsdicts = []
+    
+    shared = set()
+    
+    for n in names:
+        pages = multipage(n)
+        nm, ids, roles, titles, years = process_jsons(pages)
+        
+        namelist.append(nm)
+        shared |= add_set(idslist, ids)
+        #idslist.append(ids)
+        
+        rolesdicts.append(roles)
+        titlesdicts.append(titles)
+        yearsdicts.append(years)
+    
+    df = pd.DataFrame(columns = ['year']+namelist)
+    for s in shared:
+        
+        for td in titlesdicts:
+            if s in td:
+                tit = td[s]
+                break
+        
+        for yd in yearsdicts:
+            if s in yd:
+                yr = yd[s]
+                break
+        
+        staff_roles = []
+        for rd in rolesdicts:
+            if s in rd:
+                staff_roles.append(rd[s])
+            else:
+                staff_roles.append("")
+                
+        df.loc[tit] = [yr] + [', '.join(s) for s in staff_roles]
+    print(df.sort_values(by=['year']))
+    return df.sort_values(by=['year'])
+        
+
 def comp_staff(p1, p2):
     
     pages1 = multipage(p1)
@@ -107,10 +164,11 @@ def comp_staff(p1, p2):
     return df.sort_values(by=['year'])
 
 if __name__ == '__main__':
-    start = time.time()
-    c = comp_staff("Takahata", "Miyazaki")
-    end = time.time()
-    print("Completed in", end-start, "seconds", sep=" ")
+    print(1)
+    # start = time.time()
+    # c = comp_staff("Takahata", "Miyazaki")
+    # end = time.time()
+    # print("Completed in", end-start, "seconds", sep=" ")
     # res = get_works("Kubo", 3)
     # staff = res['data']['Staff']
     # name = staff['name']['userPreferred']
