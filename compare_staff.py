@@ -55,6 +55,9 @@ def get_works(name, page):
     return response.json()
 
 def multipage(name):
+
+    #get all pages for a staff member
+
     pages = []
     page = 1
     while True:
@@ -69,6 +72,9 @@ def multipage(name):
         
 
 def process_jsons(pages):
+
+    #parse results returned by API
+
     staff = pages[0]['data']['Staff']
     name = staff['name']['userPreferred']
 
@@ -91,45 +97,44 @@ def process_jsons(pages):
     return name, ids, ids_to_roles, ids_to_titles, ids_to_years
         
 
-# def comp_staff(p1, p2):
+def comp_staff(p1, p2):
+
+    # No longer in use. Compare two staff members.
     
-#     pages1 = multipage(p1)
-#     n1, ids1, roles1, titles1, years1 = process_jsons(pages1)
-#     #print(n1, ids1)
-#     pages2 = multipage(p2)
-#     n2, ids2, roles2, titles2, years2 = process_jsons(pages2)
-#     #print(n2, ids2)
+    pages1 = multipage(p1)
+    n1, ids1, roles1, titles1, years1 = process_jsons(pages1)
+    #print(n1, ids1)
+    pages2 = multipage(p2)
+    n2, ids2, roles2, titles2, years2 = process_jsons(pages2)
+    #print(n2, ids2)
     
-#     shared = ids1.intersection(ids2)
-#     df = pd.DataFrame(columns = ['year', n1, n2])
-#     for s in shared:
-#         df.loc[titles1[s]] = [years1[s], ', '.join(roles1[s]), ', '.join(roles2[s])]
-#     print(df.sort_values(by=['year']))
-#     return df.sort_values(by=['year'])
+    shared = ids1.intersection(ids2)
+    df = pd.DataFrame(columns = ['year', n1, n2])
+    for s in shared:
+        df.loc[titles1[s]] = [years1[s], ', '.join(roles1[s]), ', '.join(roles2[s])]
+    print(df.sort_values(by=['year']))
+    return df.sort_values(by=['year'])
 
 
 class Comparer:
+
+    #Class for comparing staff
+
     def __init__(self, names):
-        self.names = []
-        self.ids = []
-        self.table = None
-        self.rolesdicts = []
-        self.titlesdicts = []
-        self.yearsdicts = []
-        self.shared = set()
+        self.names = [] #list of names
+        self.ids = [] # list of sets containing AniList ids of everything a staff member worked on
+        self.table = None # table for showing comparison
+        self.rolesdicts = [] # list of dictionaries going from AniList ids of works to role(s) of staff member on that work.
+        self.titlesdicts = [] # list of dicionaries going from AniList ids of works to titles
+        self.yearsdicts = [] # list of dictionaries going from AniList ids to release year
+        self.shared = set() # set of AniList ids that are shared by at least two staff members in the comparison
+        #NOTE: names, ids, rolesdicts, titlesdicts, and yearsdicts are in the same order
+
         self.comp_multi(names)
         
     def comp_multi(self, names):
         
-        #namelist = []
-        #idslist = []
-        
-        #lists of dictionaries
-        #rolesdicts = []
-        #titlesdicts = []
-        #yearsdicts = []
-        
-        #shared = set()
+        #compare multiple staff members
         
         for n in names:
             pages = multipage(n)
@@ -146,6 +151,9 @@ class Comparer:
         self.make_table()
     
     def make_table(self):
+
+        # make the table
+
         df = pd.DataFrame(columns = ['year']+self.names)
         for s in self.shared:
             
@@ -171,7 +179,9 @@ class Comparer:
         self.table = df.sort_values(by=['year'])
     
     def add_set(self, newset):
-        #if len(setlist)==0: return newset
+
+        # recalculate the shared set and add the new set of ids
+
         for s in self.ids:
             self.shared|=s&newset
         self.ids.append(newset)
@@ -179,22 +189,3 @@ class Comparer:
 if __name__ == '__main__':
     print(1)
     c = Comparer(["Miyazaki", "Kanada"])
-    # start = time.time()
-    # c = comp_staff("Takahata", "Miyazaki")
-    # end = time.time()
-    # print("Completed in", end-start, "seconds", sep=" ")
-    # res = get_works("Kubo", 3)
-    # staff = res['data']['Staff']
-    # name = staff['name']['userPreferred']
-    # works = staff['staffMedia']['edges']
-    # ids = set()
-    # ids_to_roles = {}
-    # ids_to_titles = {}
-    # for w in works:
-    #     ids.add(w['node']['id'])
-    #     if w['node']['id'] in ids_to_roles:
-    #         ids_to_roles[w['node']['id']].append(w['staffRole'])
-    #     else:
-    #         ids_to_roles[w['node']['id']] = [w['staffRole']]
-    #     ids_to_titles[w['node']['id']] = w['node']['title']['userPreferred']
-    #print(json.dumps(res, indent=2))
