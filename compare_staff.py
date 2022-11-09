@@ -68,14 +68,6 @@ def multipage(name):
     return pages
         
 
-def add_set(setlist, newset):
-    #if len(setlist)==0: return newset
-    ret = set()
-    for s in setlist:
-        ret|=s&newset
-    setlist.append(newset)
-    return ret
-
 def process_jsons(pages):
     staff = pages[0]['data']['Staff']
     name = staff['name']['userPreferred']
@@ -97,74 +89,96 @@ def process_jsons(pages):
             ids_to_years[w['node']['id']] = w['node']['startDate']['year']
             
     return name, ids, ids_to_roles, ids_to_titles, ids_to_years
-
-def comp_multi(names):
-    
-    namelist = []
-    idslist = []
-    
-    #lists of dictionaries
-    rolesdicts = []
-    titlesdicts = []
-    yearsdicts = []
-    
-    shared = set()
-    
-    for n in names:
-        pages = multipage(n)
-        nm, ids, roles, titles, years = process_jsons(pages)
-        
-        namelist.append(nm)
-        shared |= add_set(idslist, ids)
-        #idslist.append(ids)
-        
-        rolesdicts.append(roles)
-        titlesdicts.append(titles)
-        yearsdicts.append(years)
-    
-    df = pd.DataFrame(columns = ['year']+namelist)
-    for s in shared:
-        
-        for td in titlesdicts:
-            if s in td:
-                tit = td[s]
-                break
-        
-        for yd in yearsdicts:
-            if s in yd:
-                yr = yd[s]
-                break
-        
-        staff_roles = []
-        for rd in rolesdicts:
-            if s in rd:
-                staff_roles.append(rd[s])
-            else:
-                staff_roles.append("")
-                
-        df.loc[tit] = [yr] + [', '.join(s) for s in staff_roles]
-    print(df.sort_values(by=['year']))
-    return df.sort_values(by=['year'])
         
 
-def comp_staff(p1, p2):
+# def comp_staff(p1, p2):
     
-    pages1 = multipage(p1)
-    n1, ids1, roles1, titles1, years1 = process_jsons(pages1)
-    #print(n1, ids1)
-    pages2 = multipage(p2)
-    n2, ids2, roles2, titles2, years2 = process_jsons(pages2)
-    #print(n2, ids2)
+#     pages1 = multipage(p1)
+#     n1, ids1, roles1, titles1, years1 = process_jsons(pages1)
+#     #print(n1, ids1)
+#     pages2 = multipage(p2)
+#     n2, ids2, roles2, titles2, years2 = process_jsons(pages2)
+#     #print(n2, ids2)
     
-    shared = ids1.intersection(ids2)
-    df = pd.DataFrame(columns = ['year', n1, n2])
-    for s in shared:
-        df.loc[titles1[s]] = [years1[s], ', '.join(roles1[s]), ', '.join(roles2[s])]
-    print(df.sort_values(by=['year']))
-    return df.sort_values(by=['year'])
+#     shared = ids1.intersection(ids2)
+#     df = pd.DataFrame(columns = ['year', n1, n2])
+#     for s in shared:
+#         df.loc[titles1[s]] = [years1[s], ', '.join(roles1[s]), ', '.join(roles2[s])]
+#     print(df.sort_values(by=['year']))
+#     return df.sort_values(by=['year'])
+
+
+class Comparer:
+    def __init__(self, names):
+        self.names = []
+        self.ids = []
+        self.table = None
+        self.rolesdicts = []
+        self.titlesdicts = []
+        self.yearsdicts = []
+        self.shared = set()
+        self.comp_multi(names)
+        
+    def comp_multi(self, names):
+        
+        #namelist = []
+        #idslist = []
+        
+        #lists of dictionaries
+        #rolesdicts = []
+        #titlesdicts = []
+        #yearsdicts = []
+        
+        #shared = set()
+        
+        for n in names:
+            pages = multipage(n)
+            nm, ids, roles, titles, years = process_jsons(pages)
+            
+            self.names.append(nm)
+            self.add_set(ids)
+            #idslist.append(ids)
+            
+            self.rolesdicts.append(roles)
+            self.titlesdicts.append(titles)
+            self.yearsdicts.append(years)
+            
+        self.make_table()
+    
+    def make_table(self):
+        df = pd.DataFrame(columns = ['year']+self.names)
+        for s in self.shared:
+            
+            for td in self.titlesdicts:
+                if s in td:
+                    tit = td[s]
+                    break
+            
+            for yd in self.yearsdicts:
+                if s in yd:
+                    yr = yd[s]
+                    break
+            
+            staff_roles = []
+            for rd in self.rolesdicts:
+                if s in rd:
+                    staff_roles.append(rd[s])
+                else:
+                    staff_roles.append("")
+                    
+            df.loc[tit] = [yr] + [', '.join(s) for s in staff_roles]
+        print(df.sort_values(by=['year']))
+        self.table = df.sort_values(by=['year'])
+    
+    def add_set(self, newset):
+        #if len(setlist)==0: return newset
+        for s in self.ids:
+            self.shared|=s&newset
+        self.ids.append(newset)
 
 if __name__ == '__main__':
     print(1)
+    c = Comparer(["Miyazaki", "Kanada"])
     # start = time.time()
     # c = comp_staff("Takahata", "Miyazaki")
     # end = time.time()
